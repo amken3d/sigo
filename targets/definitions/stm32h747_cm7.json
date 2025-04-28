@@ -34424,7 +34424,8 @@
                   "width": 1,
                   "offset": 9,
                   "flags": [
-                    "R"
+                    "R",
+                    "W"
                   ],
                   "description": "Master transfer start"
                 },
