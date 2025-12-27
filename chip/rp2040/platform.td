@@ -1,6 +1,3 @@
-// platform.td - RP2040 Series Platform Definition
-// Raspberry Pi RP2040 - Dual-core ARM Cortex-M0+ @ 133MHz
-
 #ifndef _RP2040_TD
 #define _RP2040_TD
 
@@ -9,47 +6,6 @@ include "arm/cortexm/interrupts.td"
 include "arm/cortexm/registers.td"
 include "arm/cortexm/variant.td"
 include "arm/family.td"
-
-// Include peripheral definitions
-include "peripherals/resets.td"
-include "peripherals/clocks.td"
-include "peripherals/gpio.td"
-include "peripherals/uart.td"
-include "peripherals/spi.td"
-include "peripherals/i2c.td"
-include "peripherals/pwm.td"
-include "peripherals/timer.td"
-include "peripherals/adc.td"
-include "peripherals/pio.td"
-include "peripherals/sio.td"
-include "peripherals/pads.td"
-include "peripherals/xosc.td"
-include "peripherals/pll.td"
-include "peripherals/rosc.td"
-include "peripherals/watchdog.td"
-
-//===----------------------------------------------------------------------===//
-// Peripheral Types List
-//===----------------------------------------------------------------------===//
-
-defvar peripherals = [
-  ResetsPeripheral,
-  ClocksPeripheral,
-  GPIOPeripheral,
-  UARTPeripheral,
-  SPIPeripheral,
-  I2CPeripheral,
-  PWMPeripheral,
-  TimerPeripheral,
-  ADCPeripheral,
-  PIOPeripheral,
-  SIOPeripheral,
-  PadsPeripheral,
-  XOSCPeripheral,
-  PLLPeripheral,
-  ROSCPeripheral,
-  WatchdogPeripheral,
-];
 
 //===----------------------------------------------------------------------===//
 // RP2040 Interrupts (26 device-specific IRQs)
@@ -87,13 +43,26 @@ defvar rp2040_interrupts = [
 defvar rp2040_tags = ["rp2040", "rp", "pico"];
 
 //===----------------------------------------------------------------------===//
+// RP2040 Memory Definitions
+// Note: Flash offset starts at 0x10000100 to account for 256-byte boot2 bootloader
+//===----------------------------------------------------------------------===//
+
+def RP2040_FLASH : MemoryRange<"FLASH", 0x10000100, KB<2048>, Executable, ReadWrite, "XIP Flash (2MB, after boot2)">;
+def RP2040_SRAM : MemoryRange<"SRAM", 0x20000000, KB<264>, false, ReadWrite, "Main SRAM (264KB)">;
+
+defvar rp2040_memories = [
+    RP2040_FLASH,
+    RP2040_SRAM,
+];
+
+//===----------------------------------------------------------------------===//
 // RP2040 Variant Base Class
 //===----------------------------------------------------------------------===//
 
-class RP2040Variant<string name, list<MemoryRange> memories, MemoryUnit stackSize,
-                    list<string> tags = [], string description = "">
-    : CortexMVariant<name, memories, rp2040_interrupts, stackSize,
-                     !listconcat(rp2040_tags, tags), description>;
+class RP2040Variant<string Name, list<MemoryRange> Memories, MemoryUnit StackSize,
+                    list<string> Tags = [], string Description = "">
+    : CortexMVariant<Name, Memories, rp2040_interrupts, StackSize,
+                     !listconcat(rp2040_tags, Tags), Description>;
 
 //===----------------------------------------------------------------------===//
 // RP2040 Variants
@@ -108,38 +77,11 @@ class RP2040Variant<string name, list<MemoryRange> memories, MemoryUnit stackSiz
 // 0xD0000000 - SIO (Single-cycle I/O)
 // 0xE0000000 - Cortex-M0+ internal
 
-// Note: Flash starts at 0x10000100 to account for 256-byte boot2 bootloader
-def RP2040 : RP2040Variant<"rp2040", [
-    MemoryRange<"FLASH", 0x10000100, 2097152 - 256, ReadExec, true,
-                "XIP Flash (after boot2, up to 16MB)">,
-    MemoryRange<"SRAM", 0x20000000, 270336, ReadWrite, false,
-                "Main SRAM (264KB)">,
-  ],
-  KB<2>,
-  [],
-  "Raspberry Pi RP2040">;
+def RP2040 : RP2040Variant<"rp2040", rp2040_memories, KB<2>, [], "Raspberry Pi RP2040">;
 
-// Raspberry Pi Pico - 2MB flash variant
-def PICO : RP2040Variant<"pico", [
-    MemoryRange<"FLASH", 0x10000100, 2097152 - 256, ReadExec, true,
-                "2MB XIP Flash (W25Q16)">,
-    MemoryRange<"SRAM", 0x20000000, 270336, ReadWrite, false,
-                "264KB SRAM">,
-  ],
-  KB<2>,
-  ["pico_board"],
-  "Raspberry Pi Pico">;
+def PICO : RP2040Variant<"pico", rp2040_memories, KB<2>, ["pico_board"], "Raspberry Pi Pico">;
 
-// Raspberry Pi Pico W - 2MB flash with WiFi
-def PICO_W : RP2040Variant<"pico_w", [
-    MemoryRange<"FLASH", 0x10000100, 2097152 - 256, ReadExec, true,
-                "2MB XIP Flash">,
-    MemoryRange<"SRAM", 0x20000000, 270336, ReadWrite, false,
-                "264KB SRAM">,
-  ],
-  KB<2>,
-  ["pico_w_board", "wifi"],
-  "Raspberry Pi Pico W">;
+def PICO_W : RP2040Variant<"pico_w", rp2040_memories, KB<2>, ["pico_w_board", "wifi"], "Raspberry Pi Pico W">;
 
 //===----------------------------------------------------------------------===//
 // RP2040 Series Definition
@@ -147,8 +89,8 @@ def PICO_W : RP2040Variant<"pico_w", [
 
 def RP2040Series : Series<"RP2040", CortexM0Plus> {
   let variants = [RP2040, PICO, PICO_W];
-  let peripheralTypes = peripherals;
-  let runtimePackages = ["pkg.si-go.dev/chip/rp2040/runtime"];
+  let peripheralTypes = [];
+  let runtimePackages = ["pkg.si-go.dev/chip/rp2040"];
 }
 
 #endif // _RP2040_TD

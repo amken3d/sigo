@@ -1,182 +1,145 @@
-// base.td - Base TableGen definitions for SiGo chip support packages
-// This file defines the fundamental classes for describing chip architectures,
-// memory layouts, peripherals, and interrupt configurations.
-
 #ifndef _BASE_TD
 #define _BASE_TD
 
-//===----------------------------------------------------------------------===//
-// Memory Units
-//===----------------------------------------------------------------------===//
-
-class MemoryUnit<int value> {
-  int value = value;
+class Object<string Name, string Description = ""> {
+    string name = Name;
+    string description = Description;
 }
 
-def Byte : MemoryUnit<1>;
-def KB : MemoryUnit<1024>;
-def MB : MemoryUnit<1048576>;
-
-//===----------------------------------------------------------------------===//
-// Access Modes
-//===----------------------------------------------------------------------===//
-
-class AccessMode<string value> {
-  string value = value;
+class StringValue<string Value> {
+    string value = Value;
 }
+
+class FPU<string Value, list<string> Features = []> : StringValue<Value> {
+    list<string> features = Features;
+}
+
+def NoFPU : FPU<"none">;
+
+class AccessMode<string Value> : StringValue<Value>;
 
 def Read : AccessMode<"R">;
 def Write : AccessMode<"W">;
 def ReadWrite : AccessMode<"RW">;
-def ReadExec : AccessMode<"RX">;
-def ReadWriteExec : AccessMode<"RWX">;
 
-//===----------------------------------------------------------------------===//
-// FPU Types
-//===----------------------------------------------------------------------===//
-
-class FPUType<string value, list<string> features = []> {
-  string value = value;
-  list<string> features = features;
+class Family<string Name> : Object<Name>;
+class Architecture<string Name, Family Fam, string Arch, string Triple, int Alignment = 4, FPU Fpu = NoFPU> : Object<Name> {
+    Family family = Fam;
+    FPU fpu = Fpu;
+    string triple = Triple;
+    string arch = Arch;
+    int alignment = Alignment;
+    list<string> runtimePackages = [];
+    list<string> tags = [];
+    list<string> features = [];
 }
 
-def NoFPU : FPUType<"none", []>;
-def SoftFP : FPUType<"soft", []>;
-def FPv4SP : FPUType<"fpv4-sp-d16", ["vfp4d16sp"]>;
-def FPv5SP : FPUType<"fpv5-sp-d16", ["fp-armv8d16sp"]>;
-def FPv5DP : FPUType<"fpv5-d16", ["fp-armv8d16"]>;
-
-//===----------------------------------------------------------------------===//
-// Ranges
-//===----------------------------------------------------------------------===//
-
-class Range<int offset, int width> {
-  int offset = offset;
-  int width = width;
+class Quantity<int Value, int Multiplier = 1> {
+    int value = !mul(Value, Multiplier);
 }
 
-class BitRange<int offset, int width> : Range<offset, width>;
-class ByteRange<int offset, int width> : Range<offset, width>;
+class Bit<int Value> : Quantity<Value>;
 
-//===----------------------------------------------------------------------===//
-// Memory Ranges
-//===----------------------------------------------------------------------===//
+class MemoryUnit<int Value, int Multiplier> : Quantity<Value, Multiplier>;
+class B<int Value> : MemoryUnit<Value, 1>;
+class KB<int Value> : MemoryUnit<Value, 1000>;
+class MB<int Value> : MemoryUnit<Value, 1000000>;
+class GB<int Value> : MemoryUnit<Value, 1000000000>;
 
-class MemoryRange<string name, int offset, int width, AccessMode access,
-                  bit executable = 0, string description = ""> {
-  string name = name;
-  int offset = offset;
-  int width = width;
-  AccessMode access = access;
-  bit executable = executable;
-  string description = description;
+class Range<int Offset, int Width> {
+  int offset = Offset;
+  int width = Width;
 }
 
-//===----------------------------------------------------------------------===//
-// Interrupts
-//===----------------------------------------------------------------------===//
+class BitRange<int Offset, int Width> : Range<Offset, Width>;
+class ByteRange<int Offset, int Width> : Range<Offset, Width>;
+class MemoryRange<string Name, int Origin, MemoryUnit Size, bit Executable = false, AccessMode Access = ReadWrite,
+    string Description = "">
+        : Object<Name, Description>, Range<Origin, Size.value>
+{
+    AccessMode access = Access;
+    bit executable = Executable;
+}
+defvar Executable = true;
 
-class Interrupt<string name, int line, string description = ""> {
-  string name = name;
-  int line = line;
-  string description = description;
+// Describes an acceptable value for a field.
+class Enum<string Name, int Val, string Description = ""> : Object<Name, Description> {
+    int value = Val;
 }
 
-//===----------------------------------------------------------------------===//
-// Registers and Fields
-//===----------------------------------------------------------------------===//
-
-class Enum<string name, int value, string description = ""> {
-  string name = name;
-  int value = value;
-  string description = description;
+// Describes a field within a register that a value can be read from and/or written to.
+class Field<string Name, int Offset, int Width, AccessMode Access, string Description = "", list<Enum> Enums = []>
+        : Object<Name, Description>, BitRange<Offset, Width> {
+    AccessMode access = Access;
+    list<Enum> enums = Enums;
+    int count = 1;
 }
 
-class Field<string name, int offset, int width, AccessMode access = ReadWrite,
-            string description = "", list<Enum> enums = []> {
-  string name = name;
-  int offset = offset;
-  int width = width;
-  AccessMode access = access;
-  string description = description;
-  list<Enum> enums = enums;
+class RepeatingField<string Name, int Count, int Offset, int Width, AccessMode Access, string Description = "",
+    list<Enum> Enums = []>
+        : Field<Name, Offset, Width, Access, Description, Enums>
+{
+    let count = Count;
 }
 
-class Register<string name, int offset, int width, list<Field> fields = [],
-               string description = ""> {
-  string name = name;
-  int offset = offset;
-  int width = width;
-  list<Field> fields = fields;
-  string description = description;
-  int count = 1;
+// Describes a register containing fields that can be read from of written.
+class Register<string Name, int Offset, int Width, list<Field> Fields = [], string Description = "">
+        : Object<Name, Description>, ByteRange<Offset, Width> {
+    list<Field> fields = Fields;
+    int count = 1;
 }
 
-class RepeatingRegister<string name, int count, int offset, int width,
-                        list<Field> fields = [], string description = "">
-    : Register<name, offset, width, fields, description> {
-  let count = count;
+class RepeatingRegister<string Name, int Count, int Offset, int Width, list<Field> Fields = [], string Description = "">
+    : Register<Name, Offset, Width, Fields, Description>
+{
+    let count = Count;
 }
 
-//===----------------------------------------------------------------------===//
-// Peripherals
-//===----------------------------------------------------------------------===//
-
-class PeripheralType<string name, string description = ""> {
-  string name = name;
-  string description = description;
-  list<Register> registers = [];
-  int accessWidth = 32;
-  int count = 1;
-  string arrayLabel = "";
+// Describes the prototype of a peripheral.
+class PeripheralType<string Name, string Description = ""> : Object<Name, Description> {
+    list<Register> registers;
+    int accessWidth = 32;
+    int count = 1;
+    string arrayLabel = "";
 }
 
-class PeripheralInstance<string name, int base, PeripheralType type> {
-  string name = name;
-  int base = base;
-  PeripheralType type = type;
+class RepeatingPeripheralType<string Name, int Count, string Description = ""> : PeripheralType<Name, Description> {
+    int count = Count;
 }
 
-class PeripheralGroup<string name, list<PeripheralInstance> instances> {
-  string name = name;
-  list<PeripheralInstance> instances = instances;
+class PeripheralInstance<string Name, int Base, PeripheralType Type, string Description = "", list<string> Tags = []>
+        : Object<Name, Description> {
+    int base = Base;
+    PeripheralType type = Type;
+    list<string> tags = Tags;
 }
 
-//===----------------------------------------------------------------------===//
-// Architecture
-//===----------------------------------------------------------------------===//
-
-class Architecture<string arch, string name> {
-  string arch = arch;
-  string name = name;
-  list<string> tags = [];
-  list<string> features = [];
-  string triple = "";
-  int alignment = 4;
-  FPUType fpu = NoFPU;
-  list<string> runtimePackages = [];
+// Describes a grouping of peripherals. Memboers of the group MUST be the same derived type.
+class PeripheralGroup<list<PeripheralInstance> Instances, string Description = "">
+        : Object<"Instances", Description> {
+    list<PeripheralInstance> instances = Instances;
 }
 
-//===----------------------------------------------------------------------===//
-// Variants and Series
-//===----------------------------------------------------------------------===//
-
-class Variant<string name, list<MemoryRange> memories, list<Interrupt> interrupts,
-              MemoryUnit stackSize, list<string> tags = [], string description = ""> {
-  string name = name;
-  list<MemoryRange> memories = memories;
-  list<Interrupt> interrupts = interrupts;
-  int stackSize = stackSize.value;
-  list<string> tags = tags;
-  string description = description;
+class Interrupt<string Name, int Line, string Description = ""> : Object<Name, Description> {
+    int line = Line;
 }
 
-class Series<string name, Architecture arch> {
-  string name = name;
-  Architecture arch = arch;
-  list<Variant> variants = [];
-  list<PeripheralType> peripheralTypes = [];
-  list<string> runtimePackages = [];
+// Describes a variant within a chip series.
+class Variant<string Name, list<MemoryRange> Memories = [], list<Interrupt> Interrupts = [],
+    MemoryUnit StackSize = KB<4>, list<string> Tags = [], string Description = "">
+        : Object<Name, Description> {
+    list<MemoryRange> memories = Memories;
+    list<Interrupt> interrupts = Interrupts;
+    int stackSize = StackSize.value;
+    list<string> tags = Tags;
+}
+
+class Series<string Name, Architecture Arch, string Description = ""> : Object<Name, Description> {
+    Architecture arch = Arch;
+    list<Variant> variants = [];
+    list<PeripheralType> peripheralTypes = [];
+    list<string> runtimePackages = [];
+    bit internal = false;
 }
 
 #endif // _BASE_TD

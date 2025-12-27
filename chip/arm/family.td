@@ -1,109 +1,44 @@
-// family.td - ARM architecture family definitions
-// Defines base architectures for ARM Cortex-M processors
-
 #ifndef _ARM_FAMILY_TD
 #define _ARM_FAMILY_TD
 
 include "base.td"
 
-//===----------------------------------------------------------------------===//
-// ARM Cortex-M0/M0+ (ARMv6-M)
-//===----------------------------------------------------------------------===//
+// FPU definitions.
+def VFP2 : FPU<"vfpv2", [ "vfp2" ]>;
+def VFPV3 : FPU<"vfpv3", [ "vfp3" ]>;
+def VFPV3_D16 : FPU<"vfpv3-d16", [ "vfp3d16" ]>;
+def VFPV3_SP_D16 : FPU<"vfpv3-d16", [ "vfp3d16sp" ]>;
+def VFPV4 : FPU<"vfpv4", [ "vfp4" ]>;
+def VFPV4_D16 : FPU<"vfpv4-d16", [ "vfp4d16" ]>;
+def FPV4_SP_D16 : FPU<"fpv4-sp-d16", [ "vfp4d16sp" ]>;
+def FPV4_DP_D16 : FPU<"vfpv4-d16", [ "vfp4d16" ]>;
+def FPV5 : FPU<"vfpv5", [ "fp-armv8" ]>;
+def FPV5_SP_D16 : FPU<"fpv5-sp-d16", [ "fp-armv8d16sp" ]>;
+def FPV5_D16 : FPU<"fpv5-d16", [ "fp-armv8d16" ]>;
+def NEON : FPU<"neon", [ "neon" ]>;
 
-def CortexM0 : Architecture<"arm", "cortex-m0"> {
-  let tags = ["arm", "cortexm", "cortexm0", "armv6m"];
-  let features = [];
-  let triple = "thumbv6m-none-eabi";
-  let alignment = 4;
-  let fpu = NoFPU;
-  let runtimePackages = ["pkg.si-go.dev/chip/arm/cortexm/runtime"];
+// Define supported ARM family.
+def ARM : Family<"arm">;
+class ARMArchitecture<string Name, string Arch, string Triple, int Alignment, FPU Fpu = NoFPU>
+        : Architecture<Name, ARM, Arch, Triple, Alignment, Fpu>;
+
+class CortexMArchitectue<string Name, string Arch, string Triple, list<string> Tags, FPU Fpu = NoFPU>
+        : ARMArchitecture<Name, Arch, Triple, 4, Fpu> {
+    let tags = !listconcat([ "arm", "cortexm" ], Tags);
+    let runtimePackages = [ "pkg.si-go.dev/chip/arm/cortexm/runtime" ];
 }
 
-def CortexM0Plus : Architecture<"arm", "cortex-m0plus"> {
-  let tags = ["arm", "cortexm", "cortexm0plus", "armv6m"];
-  let features = [];
-  let triple = "thumbv6m-none-eabi";
-  let alignment = 4;
-  let fpu = NoFPU;
-  let runtimePackages = ["pkg.si-go.dev/chip/arm/cortexm/runtime"];
-}
-
-//===----------------------------------------------------------------------===//
-// ARM Cortex-M3 (ARMv7-M)
-//===----------------------------------------------------------------------===//
-
-def CortexM3 : Architecture<"arm", "cortex-m3"> {
-  let tags = ["arm", "cortexm", "cortexm3", "armv7m"];
-  let features = [];
-  let triple = "thumbv7m-none-eabi";
-  let alignment = 4;
-  let fpu = NoFPU;
-  let runtimePackages = ["pkg.si-go.dev/chip/arm/cortexm/runtime"];
-}
-
-//===----------------------------------------------------------------------===//
-// ARM Cortex-M4 (ARMv7E-M)
-//===----------------------------------------------------------------------===//
-
-def CortexM4 : Architecture<"arm", "cortex-m4"> {
-  let tags = ["arm", "cortexm", "cortexm4", "armv7em"];
-  let features = ["dsp"];
-  let triple = "thumbv7em-none-eabi";
-  let alignment = 4;
-  let fpu = FPv4SP;
-  let runtimePackages = ["pkg.si-go.dev/chip/arm/cortexm/runtime"];
-}
-
-//===----------------------------------------------------------------------===//
-// ARM Cortex-M7 (ARMv7E-M)
-//===----------------------------------------------------------------------===//
-
-def CortexM7 : Architecture<"arm", "cortex-m7"> {
-  let tags = ["arm", "cortexm", "cortexm7", "armv7em"];
-  let features = ["dsp"];
-  let triple = "thumbv7em-none-eabihf";
-  let alignment = 4;
-  let fpu = FPv5DP;
-  let runtimePackages = ["pkg.si-go.dev/chip/arm/cortexm/runtime"];
-}
-
-//===----------------------------------------------------------------------===//
-// ARM Cortex-M23 (ARMv8-M Baseline)
-//===----------------------------------------------------------------------===//
-
-def CortexM23 : Architecture<"arm", "cortex-m23"> {
-  let tags = ["arm", "cortexm", "cortexm23", "armv8m", "armv8m.base"];
-  let features = [];
-  let triple = "thumbv8m.base-none-eabi";
-  let alignment = 4;
-  let fpu = NoFPU;
-  let runtimePackages = ["pkg.si-go.dev/chip/arm/cortexm/runtime"];
-}
-
-//===----------------------------------------------------------------------===//
-// ARM Cortex-M33 (ARMv8-M Mainline)
-//===----------------------------------------------------------------------===//
-
-def CortexM33 : Architecture<"arm", "cortex-m33"> {
-  let tags = ["arm", "cortexm", "cortexm33", "armv8m", "armv8m.main"];
-  let features = ["dsp"];
-  let triple = "thumbv8m.main-none-eabi";
-  let alignment = 4;
-  let fpu = FPv5SP;
-  let runtimePackages = ["pkg.si-go.dev/chip/arm/cortexm/runtime"];
-}
-
-//===----------------------------------------------------------------------===//
-// ARM Cortex-M55 (ARMv8.1-M Mainline)
-//===----------------------------------------------------------------------===//
-
-def CortexM55 : Architecture<"arm", "cortex-m55"> {
-  let tags = ["arm", "cortexm", "cortexm55", "armv8.1m", "armv8.1m.main"];
-  let features = ["dsp", "mve"];
-  let triple = "thumbv8.1m.main-none-eabihf";
-  let alignment = 4;
-  let fpu = FPv5DP;
-  let runtimePackages = ["pkg.si-go.dev/chip/arm/cortexm/runtime"];
-}
+def CortexM0 : CortexMArchitectue<"cortexm-m0", "arm", "armv6m-none-eabi", [ "armv6m" ]>;
+def CortexM0Plus : CortexMArchitectue<"cortexm-m0plus", "arm", "armv6m-none-eabi", [ "armv6m" ]>;
+def CortexM1 : CortexMArchitectue<"cortexm-m1", "arm", "armv6m-none-eabi", [ "armv6m" ]>;
+def CortexM23 : CortexMArchitectue<"cortex-m23", "arm", "armv8m.base-none-eabihf", [ "armv8m.base" ]>;
+def CortexM3 : CortexMArchitectue<"cortex-m3", "thumb2", "armv7m-none-eabi", [ "armv7m", "thumb" ]>;
+def CortexM33 : CortexMArchitectue<"cortex-m33", "thumb2", "armv8m.main-none-eabihf", [ "armv8m.main", "thumb" ], FPV5_SP_D16>;
+def CortexM35P : CortexMArchitectue<"cortex-m35p", "thumb2", "armv8m.main-none-eabihf", [ "armv8m.main", "thumb" ], FPV5_SP_D16>;
+def CortexM4 : CortexMArchitectue<"cortex-m4", "thumb2", "armv7em-none-eabihf", [ "armv7m", "armv7em", "thumb" ], FPV4_SP_D16>;
+def CortexM52 : CortexMArchitectue<"cortex-m52", "thumb2", "armv81m.main-none-eabihf", [ "armv81m.main", "thumb" ], FPV5_D16>;
+def CortexM55 : CortexMArchitectue<"cortex-m55", "thumb2", "armv81m.main-none-eabihf", [ "armv81m.main", "thumb" ], FPV5_D16>;
+def CortexM7 : CortexMArchitectue<"cortex-m7", "thumb2", "armv7em-none-eabihf", [ "armv7m", "armv7em", "thumb" ], FPV5_D16>;
+def CortexM85 : CortexMArchitectue<"cortex-m85", "thumb2", "armv81m.main-none-eabihf", [ "armv81m.main", "thumb" ], FPV5_D16>;
 
 #endif // _ARM_FAMILY_TD

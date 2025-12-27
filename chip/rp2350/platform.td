@@ -1,6 +1,3 @@
-// platform.td - RP2350 Series Platform Definition
-// Raspberry Pi RP2350 - Dual-core ARM Cortex-M33 @ 150MHz
-
 #ifndef _RP2350_TD
 #define _RP2350_TD
 
@@ -9,45 +6,6 @@ include "arm/cortexm/interrupts.td"
 include "arm/cortexm/registers.td"
 include "arm/cortexm/variant.td"
 include "arm/family.td"
-
-// Include peripheral definitions (shared with RP2040 where compatible)
-include "peripherals/resets.td"
-include "peripherals/clocks.td"
-include "peripherals/gpio.td"
-include "peripherals/uart.td"
-include "peripherals/spi.td"
-include "peripherals/i2c.td"
-include "peripherals/pwm.td"
-include "peripherals/timer.td"
-include "peripherals/adc.td"
-include "peripherals/pio.td"
-include "peripherals/sio.td"
-include "peripherals/pads.td"
-include "peripherals/xosc.td"
-include "peripherals/pll.td"
-include "peripherals/watchdog.td"
-
-//===----------------------------------------------------------------------===//
-// Peripheral Types List
-//===----------------------------------------------------------------------===//
-
-defvar peripherals = [
-  ResetsPeripheral,
-  ClocksPeripheral,
-  GPIOPeripheral,
-  UARTPeripheral,
-  SPIPeripheral,
-  I2CPeripheral,
-  PWMPeripheral,
-  TimerPeripheral,
-  ADCPeripheral,
-  PIOPeripheral,
-  SIOPeripheral,
-  PadsPeripheral,
-  XOSCPeripheral,
-  PLLPeripheral,
-  WatchdogPeripheral,
-];
 
 //===----------------------------------------------------------------------===//
 // RP2350 Interrupts (52 device-specific IRQs)
@@ -111,13 +69,26 @@ defvar rp2350_interrupts = [
 defvar rp2350_tags = ["rp2350", "rp", "pico2"];
 
 //===----------------------------------------------------------------------===//
+// RP2350 Memory Definitions
+// Note: Flash offset starts at 0x10000100 to account for 256-byte boot2 bootloader
+//===----------------------------------------------------------------------===//
+
+def RP2350_FLASH : MemoryRange<"FLASH", 0x10000100, MB<4>, Executable, ReadWrite, "XIP Flash (4MB, after boot2)">;
+def RP2350_SRAM : MemoryRange<"SRAM", 0x20000000, KB<520>, false, ReadWrite, "Main SRAM (520KB)">;
+
+defvar rp2350_memories = [
+    RP2350_FLASH,
+    RP2350_SRAM,
+];
+
+//===----------------------------------------------------------------------===//
 // RP2350 Variant Base Class
 //===----------------------------------------------------------------------===//
 
-class RP2350Variant<string name, list<MemoryRange> memories, MemoryUnit stackSize,
-                    list<string> tags = [], string description = "">
-    : CortexMVariant<name, memories, rp2350_interrupts, stackSize,
-                     !listconcat(rp2350_tags, tags), description>;
+class RP2350Variant<string Name, list<MemoryRange> Memories, MemoryUnit StackSize,
+                    list<string> Tags = [], string Description = "">
+    : CortexMVariant<Name, Memories, rp2350_interrupts, StackSize,
+                     !listconcat(rp2350_tags, Tags), Description>;
 
 //===----------------------------------------------------------------------===//
 // RP2350 Variants
@@ -132,38 +103,11 @@ class RP2350Variant<string name, list<MemoryRange> memories, MemoryUnit stackSiz
 // 0xD0000000 - SIO (Single-cycle I/O)
 // 0xE0000000 - Cortex-M33 internal
 
-// Note: Flash starts at 0x10000100 to account for 256-byte boot2 bootloader
-def RP2350 : RP2350Variant<"rp2350", [
-    MemoryRange<"FLASH", 0x10000100, 4194304 - 256, ReadExec, true,
-                "XIP Flash (after boot2, up to 16MB)">,
-    MemoryRange<"SRAM", 0x20000000, 532480, ReadWrite, false,
-                "Main SRAM (520KB)">,
-  ],
-  KB<4>,
-  [],
-  "Raspberry Pi RP2350">;
+def RP2350 : RP2350Variant<"rp2350", rp2350_memories, KB<4>, [], "Raspberry Pi RP2350">;
 
-// Raspberry Pi Pico 2 - 4MB flash variant
-def PICO2 : RP2350Variant<"pico2", [
-    MemoryRange<"FLASH", 0x10000100, 4194304 - 256, ReadExec, true,
-                "4MB XIP Flash">,
-    MemoryRange<"SRAM", 0x20000000, 532480, ReadWrite, false,
-                "520KB SRAM">,
-  ],
-  KB<4>,
-  ["pico2_board"],
-  "Raspberry Pi Pico 2">;
+def PICO2 : RP2350Variant<"pico2", rp2350_memories, KB<4>, ["pico2_board"], "Raspberry Pi Pico 2">;
 
-// Raspberry Pi Pico 2 W - 4MB flash with WiFi
-def PICO2_W : RP2350Variant<"pico2_w", [
-    MemoryRange<"FLASH", 0x10000100, 4194304 - 256, ReadExec, true,
-                "4MB XIP Flash">,
-    MemoryRange<"SRAM", 0x20000000, 532480, ReadWrite, false,
-                "520KB SRAM">,
-  ],
-  KB<4>,
-  ["pico2_w_board", "wifi"],
-  "Raspberry Pi Pico 2 W">;
+def PICO2_W : RP2350Variant<"pico2_w", rp2350_memories, KB<4>, ["pico2_w_board", "wifi"], "Raspberry Pi Pico 2 W">;
 
 //===----------------------------------------------------------------------===//
 // RP2350 Series Definition
@@ -171,8 +115,8 @@ def PICO2_W : RP2350Variant<"pico2_w", [
 
 def RP2350Series : Series<"RP2350", CortexM33> {
   let variants = [RP2350, PICO2, PICO2_W];
-  let peripheralTypes = peripherals;
-  let runtimePackages = ["pkg.si-go.dev/chip/rp2350/runtime"];
+  let peripheralTypes = [];
+  let runtimePackages = ["pkg.si-go.dev/chip/rp2350"];
 }
 
 #endif // _RP2350_TD
