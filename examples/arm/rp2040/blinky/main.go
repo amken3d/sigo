@@ -6,6 +6,7 @@
 package main
 
 import (
+	_ "pkg.si-go.dev/chip/rp2040"
 	"runtime/arm/cortexm/rp2040"
 	"time"
 	"unsafe"
