@@ -28,9 +28,9 @@ class CortexMArchitectue<string Name, string Arch, string Triple, list<string> T
     let runtimePackages = [ "pkg.si-go.dev/chip/arm/cortexm/runtime" ];
 }
 
-def CortexM0 : CortexMArchitectue<"cortexm-m0", "arm", "armv6m-none-eabi", [ "armv6m" ]>;
-def CortexM0Plus : CortexMArchitectue<"cortexm-m0plus", "arm", "armv6m-none-eabi", [ "armv6m" ]>;
-def CortexM1 : CortexMArchitectue<"cortexm-m1", "arm", "armv6m-none-eabi", [ "armv6m" ]>;
+def CortexM0 : CortexMArchitectue<"cortex-m0", "arm", "armv6m-none-eabi", [ "armv6m" ]>;
+def CortexM0Plus : CortexMArchitectue<"cortex-m0plus", "arm", "armv6m-none-eabi", [ "armv6m" ]>;
+def CortexM1 : CortexMArchitectue<"cortex-m1", "arm", "armv6m-none-eabi", [ "armv6m" ]>;
 def CortexM23 : CortexMArchitectue<"cortex-m23", "arm", "armv8m.base-none-eabihf", [ "armv8m.base" ]>;
 def CortexM3 : CortexMArchitectue<"cortex-m3", "thumb2", "armv7m-none-eabi", [ "armv7m", "thumb" ]>;
 def CortexM33 : CortexMArchitectue<"cortex-m33", "thumb2", "armv8m.main-none-eabihf", [ "armv8m.main", "thumb" ], FPV5_SP_D16>;
